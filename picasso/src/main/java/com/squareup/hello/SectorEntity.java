@@ -2,14 +2,18 @@ package com.squareup.hello;
 
 import android.text.TextUtils;
 
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
+
 /**
  * Created by zc on 2017/12/29.
  */
 
-public class SectorEntity {
+public class SectorEntity<T> {
     private static final StringBuilder KEY_BUILDER = new StringBuilder();
     long enterpriseID;
     long sectorID;
+    WeakReference<T> target;
 
     String key;
 
@@ -47,6 +51,14 @@ public class SectorEntity {
             key = createKey();
         }
         return key;
+    }
+
+    public WeakReference<T> getTarget() {
+        return target;
+    }
+
+    public void setTarget(WeakReference<T> target) {
+        this.target = target;
     }
 
     @Override

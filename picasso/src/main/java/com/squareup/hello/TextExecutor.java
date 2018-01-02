@@ -24,12 +24,17 @@ public class TextExecutor extends ThreadPoolExecutor {
         return ftask;
     }
 
-    private static final class TextFutureTask extends FutureTask<TextHunter>{
+    private static final class TextFutureTask extends FutureTask<TextHunter> implements Comparable<TextFutureTask>{
         private final TextHunter hunter;
 
         TextFutureTask(TextHunter hunter) {
             super(hunter, null);
             this.hunter = hunter;
+        }
+
+        @Override
+        public int compareTo(TextFutureTask other) {
+            return hunter.sequence - other.hunter.sequence;
         }
     }
 }

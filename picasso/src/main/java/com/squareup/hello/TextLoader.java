@@ -6,6 +6,7 @@ import android.os.Message;
 import android.util.Log;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.concurrent.Future;
 
@@ -15,20 +16,30 @@ import java.util.concurrent.Future;
 
 public class TextLoader {
     private static final String TAG = TextLoader.class.getSimpleName();
-    private static final int MSG_SUCCEED = 0x101;
-    private static final int MSG_FAILED = 0x102;
     private static final int DEFAULT_COUNT = 0;
     private static volatile TextLoader mInstance;
     TextExecutor mTextExecutor = new TextExecutor();
 
     protected static final Handler HANDLER = new Handler(Looper.getMainLooper()) {
-        @Override public void handleMessage(Message msg) {
+        @Override
+        public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_SUCCEED:
+                case TextConst.MSG_SUCCEED:
+                    SectorEntity entity = (SectorEntity)msg.obj;
+                    TextView tvShow = (TextView) entity.getTarget().get();
+                    if (tvShow != null) {
+                        tvShow.setText(entity.toString());
+                        Log.e(TAG, entity.toString());
 
+                        TextLoaderUtil.getCountMap().put(entity.getKey(), (int) entity.getEnterpriseID());
+                    } else {
+                        Log.e(TAG, "tvShow == null");
+                    }
+
+                    TextLoaderUtil.getTextHunterMap().remove(entity.getKey());
                     break;
-                case MSG_FAILED:
-
+                case TextConst.MSG_FAILED:
+                    Log.e(TAG, "Const.MSG_FAILED");
                     break;
                 default:
                     throw new AssertionError("Unknown handler message received: " + msg.what);
@@ -36,7 +47,7 @@ public class TextLoader {
         }
     };
 
-    public TextLoader getInstance(){
+    public static TextLoader getInstance(){
         if(mInstance == null){
             synchronized (TextLoader.class){
                 if(mInstance == null){
@@ -50,6 +61,7 @@ public class TextLoader {
 
     public void load(long enterpriseID, long sectorID, TextView tvTarget){
         SectorEntity entity = new SectorEntity(enterpriseID, sectorID);
+        entity.setTarget(new WeakReference(tvTarget));
 
         if(!isEnterpriseAndSector(entity)){     //是否是企业部门
             tvTarget.setText(DEFAULT_COUNT+"");
@@ -60,21 +72,25 @@ public class TextLoader {
         HashMap<String, Integer> countMap = TextLoaderUtil.getCountMap();
         if(countMap.containsKey(key)){
             tvTarget.setText(TextLoaderUtil.getCountByKey(key)+"");
+
+            SectorEntity tempEntity = TextLoaderUtil.getSectorMap().get(tvTarget);
+            if (tempEntity != null) {
+                if (!tempEntity.isSame(entity)) {     //目前这个企业部门是否和上次设置的相同
+                    cancelExist(tempEntity);
+                }
+            }
             return;
         }
 
         HashMap<Object, SectorEntity> sectorMap = TextLoaderUtil.getSectorMap();
-        if(tvTarget != null && !sectorMap.get(tvTarget).isSame(entity)){    //目前这个企业部门是否和上次设置的相同
-            cancelExist(entity);
+        if(tvTarget != null){
+            SectorEntity tempEntity = sectorMap.get(tvTarget);
+            if(tempEntity != null){
+                if(!tempEntity.isSame(entity)){     //目前这个企业部门是否和上次设置的相同
+                    cancelExist(tempEntity);
+                }
+            }
             sectorMap.put(tvTarget, entity);
-        }
-
-        HashMap<String, TextHunter> hunterMap = TextLoaderUtil.getTextHunterMap();  //是否有任务
-        TextHunter hunter = hunterMap.get(key);
-        if (hunter != null) {
-            hunter.setSectorEntity(entity);
-            tvTarget.setText(DEFAULT_COUNT+"");
-            return;
         }
 
         if(mTextExecutor.isShutdown()){
@@ -83,7 +99,14 @@ public class TextLoader {
             return;
         }
 
-        hunter = new TextHunter(entity);
+        HashMap<String, TextHunter> hunterMap = TextLoaderUtil.getTextHunterMap();  //是否有任务
+        TextHunter hunter = hunterMap.get(key);
+        if (hunter != null) {
+            hunter.setSectorEntity(entity);
+        }else{
+            hunter = new TextHunter(entity, HANDLER);
+        }
+
         Future<?> future = mTextExecutor.submit(hunter);
         hunter.setFuture(future);
         hunterMap.put(key, hunter);
@@ -96,7 +119,10 @@ public class TextLoader {
         if (hunter != null) {
             hunter.setSectorEntity(null);
             if (hunter.cancel()) {
+                Log.e(TAG, "hunter.cancel() == true" + "; 取消Entity：" + entity.toString());
                 hunterMap.remove(key);
+            }else{
+                Log.e(TAG, "hunter.cancel() == false");
             }
         }
     }
