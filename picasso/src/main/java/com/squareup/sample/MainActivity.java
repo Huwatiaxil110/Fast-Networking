@@ -3,6 +3,7 @@ package com.squareup.sample;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,8 +15,10 @@ import android.widget.TextView;
 
 import com.squareup.hello.SectorEntity;
 import com.squareup.hello.TextLoader;
+import com.squareup.jnisam.JNITest;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.R;
+import com.squareup.picasso.RequestCreator;
 
 import java.util.ArrayList;
 
@@ -44,15 +47,11 @@ public class MainActivity extends Activity{
         String path = null;
         ImageView ivShow = null;
         Picasso.get().load(path).into(ivShow);
-
     }
 
     public void doPicasso(View view){
-//        mShowAdapter = new ShowAdapter();
-//        lvShow.setAdapter(mShowAdapter);
-
-        startActivityForResult(new Intent(this, TestActivity.class), 0);
-//        startActivity(new Intent(this, TestActivity.class));
+        mShowAdapter = new ShowAdapter();
+        lvShow.setAdapter(mShowAdapter);
     }
 
     private void initData(){
