@@ -15,6 +15,7 @@ import android.widget.TextView;
 
 import com.squareup.hello.SectorEntity;
 import com.squareup.hello.TextLoader;
+import com.squareup.jnisam.JNINew;
 import com.squareup.jnisam.JNITest;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.R;
@@ -40,6 +41,12 @@ public class MainActivity extends Activity{
 
         initData();
         initViews();
+
+        String hello = new JNITest().getHello();
+        Log.e("XXXX", "Hello = " + hello);
+
+        String tian = new JNINew().getTian();
+        Log.e("XXXX", "Tian = " + tian);
     }
 
     public void doXY(){
